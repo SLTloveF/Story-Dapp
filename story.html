@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>小故事</title>
+    <link rel="stylesheet" href="story.css">
+</head>
+<body>
+<div>
+
+    <div id="top" style=" text-align: center">
+        <img src="top.png">
+    </div>
+
+    <div id="c_box" style="margin-top: -25px">
+        <div id="c_top" style="margin-left: 500px;">
+            <img src="remember.png"/>
+        </div>
+        <br/>
+        <div id="c_content" style="text-align: center;">
+            <br/>
+            <b style="font-size: 30px;cursor: pointer" id="search">检索</b>：
+
+            <input type="text" class="form-control" placeholder="故事起源" id="search_title">
+        </div>
+        <div id="c_display" style="text-align: center;margin-top: 40px;">
+            <div id="display"></div>
+            <img src="add.png" id="add" style="margin-left: 20px">
+
+        </div>
+    </div>
+</div>
+
+
+<script type="text/javascript" src="dist/nebulas.js"></script>
+<script type="text/javascript" src="dist/nebPay.js"></script>
+<script type="text/javascript" src="jquery-3.3.1.min.js"></script>
+
+<script>
+    "use strict";
+    var dappContactAddress = "n1ov7Z5oix23riQKUaVensFie5Tr5UiGmBT";
+    var nebulas = require("nebulas"), Account = Account, neb = new nebulas.Neb();
+    neb.setRequest(new nebulas.HttpRequest("https://mainnet.nebulas.io"));
+
+    var NebPay = require("nebpay");     //https://github.com/nebulasio/nebPay
+    var nebPay = new NebPay();
+    var serialNumber;
+
+
+    $("#search").click(function () {
+        if (!$("#search_title").val()) {
+            alert('搜索标题不能为空');
+        }
+        var from = dappContactAddress;
+        var value = "0";
+        var nonce = "0";
+        var gas_price = "1000000";
+        var gas_limit = "2000000";
+        var callFunction = "get";
+        var callArgs = "[\"" + $("#search_title").val() + "\"]";
+        console.log(callArgs);
+        var contract = {
+            "function": callFunction,
+            "args": callArgs
+        };
+        neb.api.call(from, dappContactAddress, value, nonce, gas_price, gas_limit, contract).then(function (resp) {
+            var result = resp.result;
+
+            if (result === 'null') {
+                $('#display').html('<p style="font-size: 30px">没有这个故事，你可以创建一个！</p>');
+                $('#title').text("");
+                $('#author').text("");
+            }
+            console.log(result);
+            result = JSON.parse(result);
+            $("#title").text(result.title);
+            $('#content').text("正文:  " + result.content);
+            $('#author').text("作者：" + result.author);
+
+        }).catch(function (err) {
+            console.log("error :" + err.message);
+
+        });
+    });
+
+    $("#add").click(function () {
+        $.get("add.html", function (data) {
+            $("#c_display").html(data);
+            $('#post').click(function () {
+                if (!$("#input_title").val() || !$("#input_content").val()) {
+                    alert('标题或者文本不能为空');
+                    return;
+                }
+                var to = dappContactAddress;
+                var value = "0";
+                var callFunction = "save";
+                var callArgs = "[\"" + $("#input_title").val() + "\",\"" + $("#input_content").val() + "\"]";
+                console.log(callArgs);
+
+                serialNumber = nebPay.call(to, value, callFunction, callArgs, {    //使用nebpay的call接口去调用合约,
+                    listener: function (resp) {
+                        console.log("thecallback is " + resp)
+                    }
+                });
+            });
+        })
+    });
+
+
+
+
+
+</script>
+</body>
+</html>
